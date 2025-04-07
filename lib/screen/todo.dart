@@ -7,17 +7,47 @@ class Todo extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      floatingActionButton:
-          FloatingActionButton(onPressed: () {}, child: Icon(Icons.add)),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          showModalBottomSheet(
+            context: context,
+            builder: (context) {
+              return AddToDoBottomSheet();
+            },
+          );
+        },
+        child: Icon(Icons.add),
+      ),
       appBar: AppBar(
         title: Text("To Do"),
         actions: [
           IconButton(
-              onPressed: () {
-                Navigator.pushReplacement(context,
-                    MaterialPageRoute(builder: (context) => const Login()));
-              },
-              icon: Icon(Icons.logout))
+            onPressed: () {
+              showDialog(
+                context: context,
+                builder: (context) => AlertDialog(
+                  title: Text("Confirm Logout"),
+                  content:
+                      Text("Are you sure you want to exit the application?"),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      child: Text("Cancel"),
+                    ),
+                    TextButton(
+                      onPressed: () {
+                        Navigator.of(context).pushReplacement(
+                          MaterialPageRoute(builder: (context) => Login()),
+                        );
+                      },
+                      child: Text("Yes"),
+                    ),
+                  ],
+                ),
+              );
+            },
+            icon: Icon(Icons.logout),
+          )
         ],
       ),
       body: ListView.builder(
@@ -63,6 +93,107 @@ class Todo extends StatelessWidget {
             ),
           );
         },
+      ),
+    );
+  }
+}
+
+class AddToDoBottomSheet extends StatefulWidget {
+  const AddToDoBottomSheet({
+    super.key,
+  });
+
+  @override
+  State<AddToDoBottomSheet> createState() => _AddToDoBottomSheetState();
+}
+
+class _AddToDoBottomSheetState extends State<AddToDoBottomSheet> {
+  String? importance_task;
+  TextEditingController dateController = TextEditingController();
+  DateTime? selectedDate;
+  Future<void> _pickDate(BuildContext context) async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: selectedDate ?? DateTime.now(),
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2100),
+    );
+    if (picked != null) {
+      setState(() {
+        selectedDate = picked;
+        dateController.text = "${picked.year}-${picked.month}-${picked.day}";
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 30, left: 10, right: 10),
+      child: Column(
+        children: [
+          TextFormField(
+            validator: (data) {
+              if (data == null || data.isEmpty) {
+                return "Required field";
+              }
+            },
+            decoration: const InputDecoration(
+              border: OutlineInputBorder(),
+              hintText: 'Enter the Title',
+            ),
+          ),
+          SizedBox(height: 40),
+          TextFormField(
+            validator: (data) {
+              if (data == null || data.isEmpty) {
+                return "Required field";
+              }
+            },
+            maxLines: 4,
+            decoration: const InputDecoration(
+              border: OutlineInputBorder(),
+              hintText: 'Enter the description',
+            ),
+          ),
+          const SizedBox(height: 20),
+          DropdownButtonFormField<String>(
+            decoration: const InputDecoration(
+              border: OutlineInputBorder(),
+              labelText: 'Select Importance',
+            ),
+            value: importance_task,
+            items: ['High', 'Medium', 'Low']
+                .map((level) => DropdownMenuItem(
+                      value: level,
+                      child: Text(level),
+                    ))
+                .toList(),
+            onChanged: (value) {
+              setState(() {
+                importance_task = value;
+              });
+            },
+          ),
+          const SizedBox(height: 20),
+          TextFormField(
+            controller: dateController,
+            readOnly: true,
+            onTap: () => _pickDate(context),
+            decoration: const InputDecoration(
+              border: OutlineInputBorder(),
+              labelText: 'Select Date',
+              suffixIcon: Icon(Icons.calendar_today),
+            ),
+            validator: (value) {
+              if (value == null || value.isEmpty) {
+                return 'Please select a date';
+              }
+            },
+          ),
+          SizedBox(height: 20),
+          ElevatedButton(onPressed: () {}, child: Text("Create"))
+        ],
       ),
     );
   }
