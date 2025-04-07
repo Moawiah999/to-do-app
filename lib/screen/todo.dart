@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:todolistapp/screen/auth/login.dart';
 
@@ -98,6 +99,7 @@ class Todo extends StatelessWidget {
   }
 }
 
+
 class AddToDoBottomSheet extends StatefulWidget {
   const AddToDoBottomSheet({
     super.key,
@@ -110,6 +112,9 @@ class AddToDoBottomSheet extends StatefulWidget {
 class _AddToDoBottomSheetState extends State<AddToDoBottomSheet> {
   String? importance_task;
   TextEditingController dateController = TextEditingController();
+  TextEditingController titleController = TextEditingController();
+  TextEditingController descriptionController = TextEditingController();
+
   DateTime? selectedDate;
   Future<void> _pickDate(BuildContext context) async {
     final DateTime? picked = await showDatePicker(
@@ -138,6 +143,7 @@ class _AddToDoBottomSheetState extends State<AddToDoBottomSheet> {
                 return "Required field";
               }
             },
+            controller: titleController,
             decoration: const InputDecoration(
               border: OutlineInputBorder(),
               hintText: 'Enter the Title',
@@ -150,6 +156,7 @@ class _AddToDoBottomSheetState extends State<AddToDoBottomSheet> {
                 return "Required field";
               }
             },
+            controller: descriptionController,
             maxLines: 4,
             decoration: const InputDecoration(
               border: OutlineInputBorder(),
@@ -192,7 +199,27 @@ class _AddToDoBottomSheetState extends State<AddToDoBottomSheet> {
             },
           ),
           SizedBox(height: 20),
-          ElevatedButton(onPressed: () {}, child: Text("Create"))
+          ElevatedButton(
+            onPressed: () async {
+              if (titleController.text.isEmpty ||
+                  descriptionController.text.isEmpty ||
+                  importance_task == null ||
+                  selectedDate == null) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text("Please fill in all fields")),
+                );
+              }
+              FirebaseFirestore.instance.collection('todos').add({
+                'title': titleController.text,
+                'description': descriptionController.text,
+                'importance': importance_task,
+                'date': dateController.text,
+                'completed': false,
+              });
+              Navigator.of(context).pop();
+            },
+            child: Text("Create"),
+          ),
         ],
       ),
     );
