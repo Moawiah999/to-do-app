@@ -1,6 +1,8 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:todolistapp/screen/auth/login.dart';
+import 'package:todolistapp/screen/edit_todo.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class Todo extends StatelessWidget {
   const Todo({super.key});
@@ -51,54 +53,110 @@ class Todo extends StatelessWidget {
           )
         ],
       ),
-      body: ListView.builder(
-        itemCount: 5,
-        itemBuilder: (context, index) {
-          return Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Card(
-              elevation: 4,
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12)),
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    ListTile(
-                      title: Text("flutter title"),
-                      subtitle: Text("Create your own app"),
-                      trailing: IconButton(
-                        onPressed: () {},
-                        icon: Icon(Icons.delete),
+      body: StreamBuilder<QuerySnapshot>(
+        stream: FirebaseFirestore.instance
+            .collection('todos')
+            .where('userId', isEqualTo: FirebaseAuth.instance.currentUser!.uid)
+            .snapshots(),
+        builder: (context, snapshot) {
+          if (!snapshot.hasData)
+            return Center(child: CircularProgressIndicator());
+          final todos = snapshot.data!.docs;
+
+          return ListView.builder(
+            itemCount: todos.length,
+            itemBuilder: (context, index) {
+              final todo = todos[index];
+              return Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: GestureDetector(
+                  onTap: () {
+                    Navigator.push(context, MaterialPageRoute(
+                      builder: (context) {
+                        return EditTodo();
+                      },
+                    ));
+                  },
+                  child: Card(
+                    elevation: 4,
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12)),
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          ListTile(
+                            leading: Checkbox(
+                              value: todo['completed'],
+                              onChanged: (value) {
+                                FirebaseFirestore.instance
+                                    .collection('todos')
+                                    .doc(todo.id)
+                                    .update({'completed': value});
+                              },
+                            ),
+                            title: Text(todo['title']),
+                            subtitle: Text(todo['description']),
+                            trailing: IconButton(
+                              icon: Icon(Icons.delete),
+                              onPressed: () {
+                                showDialog(
+                                  context: context,
+                                  builder: (context) => AlertDialog(
+                                    title: Text("Confirm delete"),
+                                    content: Text(
+                                        "Are you sure you want to delete this To Do?"),
+                                    actions: [
+                                      TextButton(
+                                        onPressed: () =>
+                                            Navigator.of(context).pop(),
+                                        child: Text("Cancel"),
+                                      ),
+                                      TextButton(
+                                        onPressed: () {
+                                          FirebaseFirestore.instance
+                                              .collection('todos')
+                                              .doc(todo.id)
+                                              .delete();
+                                          Navigator.of(context).pop();
+                                        },
+                                        child: Text("Yes"),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.only(left: 16.0),
+                            child: Text(
+                              "Importance: ${todo['importance']}",
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.red,
+                              ),
+                            ),
+                          ),
+                          Container(
+                            alignment: Alignment.bottomRight,
+                            child: Text(todo['date']),
+                          ),
+                        ],
                       ),
                     ),
-                    Padding(
-                      padding: const EdgeInsets.only(left: 16.0),
-                      child: Text(
-                        "Importance: High",
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.red,
-                        ),
-                      ),
-                    ),
-                    Container(
-                      alignment: Alignment.bottomRight,
-                      child: Text("May21 2021"),
-                    ),
-                  ],
+                  ),
                 ),
-              ),
-            ),
+              );
+            },
           );
         },
       ),
     );
   }
 }
-
 
 class AddToDoBottomSheet extends StatefulWidget {
   const AddToDoBottomSheet({
@@ -209,12 +267,13 @@ class _AddToDoBottomSheetState extends State<AddToDoBottomSheet> {
                   SnackBar(content: Text("Please fill in all fields")),
                 );
               }
-              FirebaseFirestore.instance.collection('todos').add({
+              await FirebaseFirestore.instance.collection('todos').add({
                 'title': titleController.text,
                 'description': descriptionController.text,
+                'completed': false,
                 'importance': importance_task,
                 'date': dateController.text,
-                'completed': false,
+                'userId': FirebaseAuth.instance.currentUser!.uid,
               });
               Navigator.of(context).pop();
             },
