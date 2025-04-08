@@ -71,11 +71,17 @@ class Todo extends StatelessWidget {
                 padding: const EdgeInsets.all(8.0),
                 child: GestureDetector(
                   onTap: () {
-                    Navigator.push(context, MaterialPageRoute(
-                      builder: (context) {
-                        return EditTodo();
-                      },
-                    ));
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) {
+                          return EditTodo(
+                            todoId: todo.id,
+                            todoData: todo.data() as Map<String, dynamic>,
+                          );
+                        },
+                      ),
+                    );
                   },
                   child: Card(
                     elevation: 4,
