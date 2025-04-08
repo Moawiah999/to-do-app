@@ -3,16 +3,24 @@ import 'package:flutter/material.dart';
 import 'package:todolistapp/screen/auth/login.dart';
 import 'package:todolistapp/screen/edit_todo.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:intl/intl.dart';
 
-class Todo extends StatelessWidget {
+class Todo extends StatefulWidget {
   const Todo({super.key});
 
+  @override
+  State<Todo> createState() => _TodoState();
+}
+
+class _TodoState extends State<Todo> {
+  String? todayDate;
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       floatingActionButton: FloatingActionButton(
         onPressed: () {
           showModalBottomSheet(
+            isScrollControlled: true,
             context: context,
             builder: (context) {
               return AddToDoBottomSheet();
@@ -198,94 +206,109 @@ class _AddToDoBottomSheetState extends State<AddToDoBottomSheet> {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(top: 30, left: 10, right: 10),
-      child: Column(
-        children: [
-          TextFormField(
-            validator: (data) {
-              if (data == null || data.isEmpty) {
-                return "Required field";
-              }
-            },
-            controller: titleController,
-            decoration: const InputDecoration(
-              border: OutlineInputBorder(),
-              hintText: 'Enter the Title',
+      padding: EdgeInsets.only(
+        top: 30,
+        left: 10,
+        right: 10,
+        bottom:
+            MediaQuery.of(context).viewInsets.bottom, // Adjusts for keyboard
+      ),
+      child: SingleChildScrollView(
+        // Makes the sheet scrollable when keyboard shows
+        child: Column(
+          mainAxisSize: MainAxisSize.min, // Important for bottom sheets
+          children: [
+            TextFormField(
+              validator: (data) {
+                if (data == null || data.isEmpty) {
+                  return "Required field";
+                }
+                return null;
+              },
+              controller: titleController,
+              decoration: const InputDecoration(
+                border: OutlineInputBorder(),
+                hintText: 'Enter the Title',
+              ),
             ),
-          ),
-          SizedBox(height: 40),
-          TextFormField(
-            validator: (data) {
-              if (data == null || data.isEmpty) {
-                return "Required field";
-              }
-            },
-            controller: descriptionController,
-            maxLines: 4,
-            decoration: const InputDecoration(
-              border: OutlineInputBorder(),
-              hintText: 'Enter the description',
+            const SizedBox(height: 40),
+            TextFormField(
+              validator: (data) {
+                if (data == null || data.isEmpty) {
+                  return "Required field";
+                }
+                return null;
+              },
+              controller: descriptionController,
+              maxLines: 4,
+              decoration: const InputDecoration(
+                border: OutlineInputBorder(),
+                hintText: 'Enter the description',
+              ),
             ),
-          ),
-          const SizedBox(height: 20),
-          DropdownButtonFormField<String>(
-            decoration: const InputDecoration(
-              border: OutlineInputBorder(),
-              labelText: 'Select Importance',
+            const SizedBox(height: 20),
+            DropdownButtonFormField<String>(
+              decoration: const InputDecoration(
+                border: OutlineInputBorder(),
+                labelText: 'Select Importance',
+              ),
+              value: importance_task,
+              items: ['High', 'Medium', 'Low']
+                  .map((level) => DropdownMenuItem(
+                        value: level,
+                        child: Text(level),
+                      ))
+                  .toList(),
+              onChanged: (value) {
+                setState(() {
+                  importance_task = value;
+                });
+              },
             ),
-            value: importance_task,
-            items: ['High', 'Medium', 'Low']
-                .map((level) => DropdownMenuItem(
-                      value: level,
-                      child: Text(level),
-                    ))
-                .toList(),
-            onChanged: (value) {
-              setState(() {
-                importance_task = value;
-              });
-            },
-          ),
-          const SizedBox(height: 20),
-          TextFormField(
-            controller: dateController,
-            readOnly: true,
-            onTap: () => _pickDate(context),
-            decoration: const InputDecoration(
-              border: OutlineInputBorder(),
-              labelText: 'Select Date',
-              suffixIcon: Icon(Icons.calendar_today),
+            const SizedBox(height: 20),
+            TextFormField(
+              controller: dateController,
+              readOnly: true,
+              onTap: () => _pickDate(context),
+              decoration: const InputDecoration(
+                border: OutlineInputBorder(),
+                labelText: 'Select Date',
+                suffixIcon: Icon(Icons.calendar_today),
+              ),
+              validator: (value) {
+                if (value == null || value.isEmpty) {
+                  return 'Please select a date';
+                }
+                return null;
+              },
             ),
-            validator: (value) {
-              if (value == null || value.isEmpty) {
-                return 'Please select a date';
-              }
-            },
-          ),
-          SizedBox(height: 20),
-          ElevatedButton(
-            onPressed: () async {
-              if (titleController.text.isEmpty ||
-                  descriptionController.text.isEmpty ||
-                  importance_task == null ||
-                  selectedDate == null) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text("Please fill in all fields")),
-                );
-              }
-              await FirebaseFirestore.instance.collection('todos').add({
-                'title': titleController.text,
-                'description': descriptionController.text,
-                'completed': false,
-                'importance': importance_task,
-                'date': dateController.text,
-                'userId': FirebaseAuth.instance.currentUser!.uid,
-              });
-              Navigator.of(context).pop();
-            },
-            child: Text("Create"),
-          ),
-        ],
+            const SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: () async {
+                if (titleController.text.isEmpty ||
+                    descriptionController.text.isEmpty ||
+                    importance_task == null ||
+                    selectedDate == null) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text("Please fill in all fields")),
+                  );
+                  return;
+                }
+                await FirebaseFirestore.instance.collection('todos').add({
+                  'title': titleController.text,
+                  'description': descriptionController.text,
+                  'completed': false,
+                  'importance': importance_task,
+                  'date': dateController.text,
+                  'userId': FirebaseAuth.instance.currentUser!.uid,
+                });
+                Navigator.of(context).pop();
+              },
+              child: const Text("Create"),
+            ),
+            const SizedBox(height: 20)
+          ],
+        ),
       ),
     );
   }
