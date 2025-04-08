@@ -54,6 +54,7 @@ class _LoginState extends State<Login> {
                         return null;
                       },
                       controller: emailController,
+                      keyboardType: TextInputType.emailAddress,
                       decoration: const InputDecoration(
                         border: OutlineInputBorder(),
                         hintText: 'Enter your email',

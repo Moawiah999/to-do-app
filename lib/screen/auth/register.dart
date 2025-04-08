@@ -50,6 +50,7 @@ class _RegisterState extends State<Register> {
                         }
                       },
                       controller: emailController,
+                      keyboardType: TextInputType.emailAddress,
                       decoration: const InputDecoration(
                         border: OutlineInputBorder(),
                         hintText: 'Enter your email',
